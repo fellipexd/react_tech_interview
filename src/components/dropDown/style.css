@@ -1,6 +1,6 @@
 .Container {
     display: flex;
-    width: 140px;
+    position: absolute;
 }
 
 .ContainerDropDown {

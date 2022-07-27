@@ -1,128 +1,97 @@
+import {useCallback, useEffect, useState} from "react";
+import DropDownButton from "./dropDownButton";
+import DropDownMenus from "./dropDownMenus";
 import './style.css'
-import {useEffect, useState} from "react";
 
 interface IDropDown {
-    // children: JSX.Element;
     children?: string;
     show: boolean;
     onClick: (value: boolean) => void;
     menuList: Array<IMenu>;
     right?: boolean;
+    keyboardMap?: IKeyboardMap;
 }
 
 interface IMenu {
-    name: string
+    name: string;
     onClick: () => void;
-    selectd?: boolean;
+}
+
+interface IKeyboardMap {
+    open: string;
+    close: string;
+    moveUp: string;
+    moveDown: string;
+    exec: string;
 }
 
 const DropDown = ({
-                      children,
                       show,
                       onClick,
                       menuList,
+                      keyboardMap,
                       right=false
 }: IDropDown) => {
-    const [menuSelected, setMenuSelected] = useState<number>(0)
-    const [newMenuList, setNewMenuList] = useState<Array<IMenu>>(menuList)
+    const [menuSelected, setMenuSelected] = useState(-1)
+
+    const handleKeyPress = useCallback((event: any) => {
+        noMouseControl(event.key);
+    }, [menuSelected]);
 
     const noMouseControl = (keyPressed: string) => {
-        if (keyPressed === 'd') {
+        if (!keyboardMap) {return;}
+
+        if (keyPressed === keyboardMap.open) {
+            if (show) {return;}
             onClick(true);
-            setMenuSelected(0);
+            setMenuSelected(0)
         }
 
-        if (keyPressed === 'Escape') {
+        if (keyPressed === keyboardMap.close) {
             onClick(false);
+            setMenuSelected(-1)
         }
 
-        if (keyPressed === 'ArrowDown' && show && menuList.length > 0) {
-            console.log(menuSelected)
-            const indexMenu = menuSelected + 1
-            setMenuSelected(indexMenu)
-            const modifyMenu = newMenuList
-            modifyMenu[indexMenu].selectd = true
-            setNewMenuList(modifyMenu)
+        if (keyPressed === keyboardMap.moveUp) {
+            setMenuSelected((prev) => (prev + 1) > 1 ? (prev - 1) : prev)
         }
 
-        if (keyPressed === 'Enter' && show && menuList.length > 0) {
-            newMenuList[menuSelected].onClick();
+        if (keyPressed === keyboardMap.moveDown) {
+            setMenuSelected((prev) => (prev + 1) < menuList.length ? (prev + 1) : prev)
+        }
+
+        if (keyPressed === keyboardMap.exec && show && menuList.length > 0) {
+            if (menuSelected < 0 || (menuSelected + 1) > menuList.length) {return;}
+            menuList[menuSelected].onClick();
         }
     }
 
     useEffect(() => {
-        document.addEventListener('keydown', (value) => {
-            noMouseControl(value.key)
-        });
-    }, [])
+        if (!keyboardMap) {return;}
+
+        document.addEventListener('keydown', handleKeyPress);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
+    }, [handleKeyPress]);
 
     return (
     <div
-        style={{ justifyContent: right ? 'flex-end' : 'flex-start'}}
         className="Container"
     >
         <DropDownButton
             onClick={onClick}
             show={show}
         />
-        {show && newMenuList &&
+        {show && menuList &&
             <DropDownMenus
-                menuList={newMenuList}
+                menuList={menuList}
+                menuSelected={menuSelected}
+                right={right}
             />
         }
     </div>
-    )
-}
-
-const DropDownButton = ({onClick, show}: any) => {
-    return (
-        <div
-            className="ContainerDropDown"
-            onClick={() => onClick(!show)}
-        >
-            <Icon />
-            <Icon />
-            <Icon />
-        </div>
-    )
-}
-
-const Icon = () => {
-    return (
-        <div className="BallContainer">
-            <div className="BallIcon"/>
-        </div>
-    )
-}
-
-const DropDownMenus = ({ menuList }: any) => {
-    return (
-        <div className="MenuDropDownContainer">
-            {menuList.map((item: any, index: number) => {
-               return (
-                   <Menu
-                       key={index}
-                       name={item.name}
-                       onClick={item.onClick}
-                       selected={item.selected}
-                    />
-               )
-            })}
-        </div>
-    )
-}
-
-
-const Menu = ({ name, onClick, selected }: any) => {
-    console.log(selected)
-
-    return (
-        <div
-            className="MenuContainer"
-            onClick={onClick}
-        >
-            {name}
-        </div>
     )
 }
 
